@@ -227,11 +227,47 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
     includeFor: ['customer', 'provider'],
   };
 
+  // Calculate order total for fee calculations
+  const orderQuantity = units && seats ? units * seats : quantity;
+  const orderTotalInSubunits = unitPrice.amount * orderQuantity;
+
+  // Calculate damageFee: 6% of order, capped at $12 (1200 cents)
+  const damageFeeAmount = orderData.damageFee
+    ? Math.min(Math.round(orderTotalInSubunits * 0.06), 1200)
+    : null;
+  const damageFee = damageFeeAmount
+    ? [
+        {
+          code: 'line-item/damage-protection',
+          unitPrice: new Money(damageFeeAmount, currency),
+          quantity: 1,
+          includeFor: ['customer'],
+        },
+      ]
+    : [];
+
+  // Calculate damageTheftFee: 14% of order, capped at $25 (2500 cents)
+  const damageTheftFeeAmount = orderData.damageTheftFee
+    ? Math.min(Math.round(orderTotalInSubunits * 0.14), 2500)
+    : null;
+  const damageTheftFee = damageTheftFeeAmount
+    ? [
+        {
+          code: 'line-item/damage-+-theft-protection',
+          unitPrice: new Money(damageTheftFeeAmount, currency),
+          quantity: 1,
+          includeFor: ['customer'],
+        },
+      ]
+    : [];
+
   // Let's keep the base price (order) as first line item and provider and customer commissions as last.
   // Note: the order matters only if OrderBreakdown component doesn't recognize line-item.
   const lineItems = [
     order,
     ...extraLineItems,
+    ...damageFee,
+    ...damageTheftFee,
     ...getProviderCommissionMaybe(providerCommission, order, currency),
     ...getCustomerCommissionMaybe(customerCommission, order, currency),
   ];

@@ -308,8 +308,14 @@ const OrderPanel = props => {
   } = props;
 
   const publicData = listing?.attributes?.publicData || {};
-  const { listingType, unitType, transactionProcessAlias = '', priceVariants, startTimeInterval } =
-    publicData || {};
+  const {
+    listingType,
+    unitType,
+    transactionProcessAlias = '',
+    priceVariants,
+    startTimeInterval,
+    estimated_price,
+  } = publicData || {};
 
   const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
   const lineItemUnitType = lineItemUnitTypeMaybe || `line-item/${unitType}`;
@@ -517,6 +523,7 @@ const OrderPanel = props => {
             onFetchTimeSlots={onFetchTimeSlots}
             timeZone={timeZone}
             finePrintComponent={SubmitFinePrint}
+            estimated_price={estimated_price}
             {...priceVariantsMaybe}
             {...sharedProps}
           />

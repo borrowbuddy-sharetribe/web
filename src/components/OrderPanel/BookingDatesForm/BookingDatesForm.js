@@ -21,7 +21,14 @@ import { LINE_ITEM_DAY, propTypes } from '../../../util/types';
 import { timeSlotsPerDate } from '../../../util/generators';
 import { BOOKING_PROCESS_NAME } from '../../../transactions/transaction';
 
-import { Form, PrimaryButton, FieldDateRangePicker, FieldSelect, H6 } from '../../../components';
+import {
+  Form,
+  PrimaryButton,
+  FieldDateRangePicker,
+  FieldSelect,
+  H6,
+  FieldCheckbox,
+} from '../../../components';
 
 import EstimatedCustomerBreakdownMaybe from '../EstimatedCustomerBreakdownMaybe';
 
@@ -345,7 +352,8 @@ const calculateLineItems = (
   onFetchTransactionLineItems,
   seatsEnabled
 ) => formValues => {
-  const { startDate, endDate, priceVariantName, seats } = formValues?.values || {};
+  const { startDate, endDate, priceVariantName, seats, damageFee, damageTheftFee } =
+    formValues?.values || {};
 
   const priceVariantMaybe = priceVariantName ? { priceVariantName } : {};
   const seatCount = seats ? parseInt(seats, 10) : 1;
@@ -355,6 +363,8 @@ const calculateLineItems = (
     bookingEnd: endDate,
     ...priceVariantMaybe,
     ...(seatsEnabled && { seats: seatCount }),
+    ...(damageFee && { damageFee }),
+    ...(damageTheftFee && { damageTheftFee }),
   };
 
   if (startDate && endDate && !fetchLineItemsInProgress) {
@@ -619,9 +629,11 @@ export const BookingDatesForm = props => {
           onFetchTimeSlots,
           form: formApi,
           finePrintComponent: FinePrint,
+          estimated_price,
         } = formRenderProps;
         const { startDate, endDate } = values?.bookingDates ? values.bookingDates : {};
         const priceVariantName = values?.priceVariantName || null;
+        const { damageFee, damageTheftFee } = values || {};
 
         const startDateErrorMessage = intl.formatMessage({
           id: 'FieldDateRangeInput.invalidStartDate',
@@ -699,6 +711,7 @@ export const BookingDatesForm = props => {
         const isDaily = lineItemUnitType === LINE_ITEM_DAY;
         const submitDisabled = isPriceVariationsInUse && !isPublishedListing;
 
+        const disableCheckboxes = estimated_price && estimated_price > 1500;
         return (
           <Form onSubmit={handleSubmit} className={classes} enforcePagePreloadFor="CheckoutPage">
             {PriceVariantFieldComponent ? (
@@ -789,6 +802,8 @@ export const BookingDatesForm = props => {
                     startDate,
                     endDate,
                     seats: seatsEnabled ? 1 : undefined,
+                    damageFee,
+                    damageTheftFee,
                   },
                 });
               }}
@@ -823,6 +838,98 @@ export const BookingDatesForm = props => {
                 ))}
               </FieldSelect>
             ) : null}
+
+            {startDate && endDate && (
+              <div
+                onClick={() => {
+                  if (disableCheckboxes) {
+                    window.alert(intl.formatMessage({ id: 'BookingDatesForm.protectionAlert' }));
+                  }
+                }}
+              >
+                <div className={css.protectionSection}>
+                  <p className={css.protectionHeading}>
+                    {intl.formatMessage({ id: 'BookingDatesForm.protectionHeading' })}
+                  </p>
+                </div>
+
+                <FieldCheckbox
+                  disabled={disableCheckboxes}
+                  className={css.feeContainer}
+                  id={`${formId}.damageFee`}
+                  name="damageFee"
+                  label={
+                    <>
+                      <strong>
+                        {intl.formatMessage({ id: 'BookingDatesForm.damageProtectionLabel' })}
+                      </strong>
+                      <br />
+                      <span className={css.protectionDescription}>
+                        {intl.formatMessage({ id: 'BookingDatesForm.damageProtectionDescription' })}
+                      </span>
+                      <br />
+                      <span className={css.protectionNote}>
+                        {intl.formatMessage({ id: 'BookingDatesForm.damageProtectionNote' })}
+                      </span>
+                    </>
+                  }
+                  value="damageFee"
+                  onChange={event => {
+                    onHandleFetchLineItems({
+                      values: {
+                        priceVariantName,
+                        startDate: startDate,
+                        endDate: endDate,
+                        seats: seatsEnabled ? 1 : undefined,
+                        damageFee: event.target.checked,
+                        damageTheftFee: Array.isArray(damageTheftFee)
+                          ? damageTheftFee.length > 0
+                            ? true
+                            : false
+                          : !!damageTheftFee,
+                      },
+                    });
+                  }}
+                />
+
+                <FieldCheckbox
+                  disabled={disableCheckboxes}
+                  className={css.feeContainer}
+                  id={`${formId}.damageTheftFee`}
+                  name="damageTheftFee"
+                  label={
+                    <>
+                      <strong>
+                        {intl.formatMessage({ id: 'BookingDatesForm.damageTheftProtectionLabel' })}
+                      </strong>
+                      <br />
+                      <span className={css.protectionDescription}>
+                        {intl.formatMessage({
+                          id: 'BookingDatesForm.damageTheftProtectionDescription',
+                        })}
+                      </span>
+                    </>
+                  }
+                  value="damageTheftFee"
+                  onChange={event => {
+                    onHandleFetchLineItems({
+                      values: {
+                        priceVariantName,
+                        startDate: startDate,
+                        endDate: endDate,
+                        seats: seatsEnabled ? 1 : undefined,
+                        damageTheftFee: event.target.checked,
+                        damageFee: Array.isArray(damageFee)
+                          ? damageFee.length > 0
+                            ? true
+                            : false
+                          : !!damageFee,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            )}
 
             {showEstimatedBreakdown ? (
               <div className={css.priceBreakdownContainer}>

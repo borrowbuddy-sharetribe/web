@@ -86,3 +86,38 @@
     margin: 24px 0;
   }
 }
+
+.protectionSection {
+  padding: 0 24px;
+  margin-top: 24px;
+
+  @media (--viewportMedium) {
+    padding: 0;
+  }
+}
+
+.protectionHeading {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  color: var(--colorGrey700);
+}
+
+.protectionDescription {
+  font-size: 14px;
+  color: var(--colorGrey700);
+}
+
+.protectionNote {
+  font-size: 12px;
+  font-style: italic;
+}
+
+.feeContainer {
+  padding: 0 24px;
+  margin-top: 8px;
+
+  @media (--viewportMedium) {
+    padding: 0;
+  }
+}
