@@ -12,7 +12,7 @@ import { types as sdkTypes } from '../../../../util/sdkLoader';
 import { FIXED, isBookingProcess } from '../../../../transactions/transaction';
 
 // Import shared components
-import { Button, Form, FieldCurrencyInput } from '../../../../components';
+import { Button, Form, FieldCurrencyInput, FieldCheckbox } from '../../../../components';
 
 import BookingPriceVariants from './BookingPriceVariants';
 import StartTimeInterval from './StartTimeInverval';
@@ -170,6 +170,31 @@ export const EditListingPricingForm = props => (
               validate={priceValidators}
             />
           )}
+
+          {!isUsingPriceVariants ? (
+            <React.Fragment>
+              <FieldCheckbox
+                id="hasWeeklyPrice"
+                name="hasWeeklyPrice"
+                className={css.input}
+                label={intl.formatMessage({ id: 'EditListingPricingForm.hasWeeklyPriceLabel' })}
+              />
+
+              {formValues.hasWeeklyPrice ? (
+                <FieldCurrencyInput
+                  id="weeklyPrice"
+                  name="weeklyPrice"
+                  className={css.input}
+                  label={intl.formatMessage({ id: 'EditListingPricingForm.weeklyPriceLabel' })}
+                  placeholder={intl.formatMessage({
+                    id: 'EditListingPricingForm.weeklyPricePlaceholder',
+                  })}
+                  currencyConfig={appSettings.getCurrencyFormatting(marketplaceCurrency)}
+                  validate={priceValidators}
+                />
+              ) : null}
+            </React.Fragment>
+          ) : null}
 
           {isFixedLengthBooking ? (
             <StartTimeInterval

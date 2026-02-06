@@ -16,6 +16,7 @@ import {
   monthIdString,
   parseDateFromISO8601,
   stringifyDateToISO8601,
+  daysBetween,
 } from '../../../util/dates';
 import { LINE_ITEM_DAY, propTypes } from '../../../util/types';
 import { timeSlotsPerDate } from '../../../util/generators';
@@ -352,8 +353,15 @@ const calculateLineItems = (
   onFetchTransactionLineItems,
   seatsEnabled
 ) => formValues => {
-  const { startDate, endDate, priceVariantName, seats, damageFee, damageTheftFee } =
-    formValues?.values || {};
+  const {
+    startDate,
+    endDate,
+    priceVariantName,
+    seats,
+    damageFee,
+    damageTheftFee,
+    weeklyPriceApplied,
+  } = formValues?.values || {};
 
   const priceVariantMaybe = priceVariantName ? { priceVariantName } : {};
   const seatCount = seats ? parseInt(seats, 10) : 1;
@@ -365,9 +373,14 @@ const calculateLineItems = (
     ...(seatsEnabled && { seats: seatCount }),
     ...(damageFee && { damageFee }),
     ...(damageTheftFee && { damageTheftFee }),
+    weeklyPriceApplied,
   };
 
-  if (startDate && endDate && !fetchLineItemsInProgress) {
+  const isValidWeeklyBooking = weeklyPriceApplied
+    ? startDate && endDate && daysBetween(startDate, endDate) === 7
+    : true;
+
+  if (startDate && endDate && !fetchLineItemsInProgress && isValidWeeklyBooking) {
     onFetchTransactionLineItems({
       orderData,
       listingId,
@@ -547,6 +560,7 @@ export const BookingDatesForm = props => {
     priceVariantFieldComponent: PriceVariantFieldComponent,
     preselectedPriceVariant,
     isPublishedListing,
+    weeklyPrice,
     ...rest
   } = props;
   const intl = useIntl();
@@ -611,11 +625,29 @@ export const BookingDatesForm = props => {
     seatsEnabled
   );
 
+  const validateForm = values => {
+    const errors = {};
+    const { weeklyPriceApplied, bookingDates } = values || {};
+    const hasDateRange = bookingDates?.startDate && bookingDates?.endDate;
+
+    if (weeklyPriceApplied && hasDateRange) {
+      const days = daysBetween(bookingDates.startDate, bookingDates.endDate);
+      if (days !== 7) {
+        errors.bookingDates = intl.formatMessage({
+          id: 'BookingDatesForm.weeklyPrice7DaysError',
+          defaultMessage: 'Weekly price requires exactly 7 days',
+        });
+      }
+    }
+    return errors;
+  };
+
   return (
     <FinalForm
       {...initialValuesMaybe}
       {...rest}
       unitPrice={unitPrice}
+      validate={validateForm}
       render={formRenderProps => {
         const {
           endDatePlaceholder,
@@ -633,7 +665,7 @@ export const BookingDatesForm = props => {
         } = formRenderProps;
         const { startDate, endDate } = values?.bookingDates ? values.bookingDates : {};
         const priceVariantName = values?.priceVariantName || null;
-        const { damageFee, damageTheftFee } = values || {};
+        const { damageFee, damageTheftFee, weeklyPriceApplied } = values || {};
 
         const startDateErrorMessage = intl.formatMessage({
           id: 'FieldDateRangeInput.invalidStartDate',
@@ -654,8 +686,17 @@ export const BookingDatesForm = props => {
                 endDate,
               }
             : null;
+
+        const isValidWeeklyBooking = weeklyPriceApplied
+          ? startDate && endDate && daysBetween(startDate, endDate) === 7
+          : true;
+
         const showEstimatedBreakdown =
-          breakdownData && lineItems && !fetchLineItemsInProgress && !fetchLineItemsError;
+          breakdownData &&
+          lineItems &&
+          !fetchLineItemsInProgress &&
+          !fetchLineItemsError &&
+          isValidWeeklyBooking;
 
         const dateFormatOptions = {
           weekday: 'short',
@@ -720,6 +761,34 @@ export const BookingDatesForm = props => {
                 priceVariantName={priceVariantName}
                 onPriceVariantChange={onPriceVariantChange(formRenderProps)}
                 disabled={!isPublishedListing}
+              />
+            ) : null}
+
+            {weeklyPrice ? (
+              <FieldCheckbox
+                id="weeklyPriceApplied"
+                name="weeklyPriceApplied"
+                label={intl.formatMessage({
+                  id: 'BookingDatesForm.useWeeklyPrice',
+                  defaultMessage: 'Use weekly price',
+                })}
+                className={css.weeklyPriceCheckbox}
+                onChange={event => {
+                  const isChecked = event.target.checked;
+
+                  // Recalculate line items with the new weekly price state
+                  onHandleFetchLineItems({
+                    values: {
+                      priceVariantName,
+                      startDate,
+                      endDate,
+                      seats: seatsEnabled ? 1 : undefined,
+                      damageFee,
+                      damageTheftFee,
+                      weeklyPriceApplied: isChecked,
+                    },
+                  });
+                }}
               />
             ) : null}
 
@@ -804,6 +873,7 @@ export const BookingDatesForm = props => {
                     seats: seatsEnabled ? 1 : undefined,
                     damageFee,
                     damageTheftFee,
+                    weeklyPriceApplied,
                   },
                 });
               }}
@@ -824,6 +894,7 @@ export const BookingDatesForm = props => {
                       startDate: startDate,
                       endDate: endDate,
                       seats: values,
+                      weeklyPriceApplied,
                     },
                   });
                 }}
@@ -887,6 +958,7 @@ export const BookingDatesForm = props => {
                             ? true
                             : false
                           : !!damageTheftFee,
+                        weeklyPriceApplied,
                       },
                     });
                   }}
@@ -924,6 +996,7 @@ export const BookingDatesForm = props => {
                             ? true
                             : false
                           : !!damageFee,
+                        weeklyPriceApplied,
                       },
                     });
                   }}

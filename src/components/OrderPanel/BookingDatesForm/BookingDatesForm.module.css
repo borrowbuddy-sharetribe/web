@@ -121,3 +121,17 @@
     padding: 0;
   }
 }
+
+.weeklyPriceCheckbox {
+  margin: 0 24px 12px 24px;
+
+  @media (--viewportMedium) {
+    margin: 12px 0 24px 0;
+  }
+}
+
+.weeklyPriceError {
+  color: var(--colorFail);
+  font-size: 14px;
+  display: block;
+}

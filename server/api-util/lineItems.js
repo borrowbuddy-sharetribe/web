@@ -146,15 +146,22 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
   const priceAttribute = listing.attributes.price;
   const currency = priceAttribute?.currency || orderData.currency;
 
-  const { priceVariantName, offer } = orderData || {};
+  const { priceVariantName, offer, weeklyPriceApplied } = orderData || {};
   const priceVariantConfig = priceVariants
     ? priceVariants.find(pv => pv.name === priceVariantName)
     : null;
   const { priceInSubunits } = priceVariantConfig || {};
   const isPriceInSubunitsValid = Number.isInteger(priceInSubunits) && priceInSubunits >= 0;
+  const { weeklyPrice: weeklyPricePublicData } = publicData || {};
+  const weeklyPrice =
+    weeklyPricePublicData && weeklyPricePublicData.amount && weeklyPricePublicData.currency
+      ? new Money(weeklyPricePublicData.amount, weeklyPricePublicData.currency)
+      : null;
 
   const unitPrice =
-    isBookable && priceVariationsEnabled && isPriceInSubunitsValid
+    weeklyPriceApplied && weeklyPrice
+      ? weeklyPrice
+      : isBookable && priceVariationsEnabled && isPriceInSubunitsValid
       ? new Money(priceInSubunits, currency)
       : offer instanceof Money && isNegotiationUnitType
       ? offer
@@ -171,6 +178,7 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
    * - includedFor
    */
 
+  const isWeeklyPricing = weeklyPriceApplied && weeklyPrice;
   const code = `line-item/${unitType}`;
 
   // Here "extra line-items" means line-items that are tied to unit type
@@ -188,7 +196,17 @@ exports.transactionLineItems = (listing, orderData, providerCommission, customer
       ? getOfferQuantityAndLineItems(orderData)
       : {};
 
-  const { quantity, units, seats, extraLineItems } = quantityAndExtraLineItems;
+  const {
+    quantity: initialQuantity,
+    units: initialUnits,
+    seats,
+    extraLineItems,
+  } = quantityAndExtraLineItems;
+
+  // If weekly price is applied, we force quantity/units to 1 (treating the week as 1 unit)
+  // If seats are present, we preserve them (e.g. 2 seats * 1 weekly price)
+  const quantity = isWeeklyPricing && !seats ? 1 : isWeeklyPricing ? null : initialQuantity;
+  const units = isWeeklyPricing && seats ? 1 : isWeeklyPricing ? null : initialUnits;
 
   // Throw error if there is no quantity information given
   if (!quantity && !(units && seats)) {
