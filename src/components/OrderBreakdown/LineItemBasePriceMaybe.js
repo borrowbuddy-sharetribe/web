@@ -58,11 +58,16 @@ const LineItemBasePriceMaybe = props => {
   const unitPrice = unitPurchase ? formatMoney(intl, unitPurchase.unitPrice) : null;
   const total = unitPurchase ? formatMoney(intl, unitPurchase.lineTotal) : null;
 
+  const isWeeklyPricing = isDaily && quantity === '1';
+
   const message = unitPurchase?.seats ? (
     <FormattedMessage
       id={`${translationKey}Seats`}
       values={{ unitPrice, quantity, seats: unitPurchase.seats }}
     />
+  ) : isWeeklyPricing ? (
+    // Show weekly format: "{unitPrice} x 1 week"
+    `${unitPrice} x 1 week`
   ) : (
     <FormattedMessage id={translationKey} values={{ unitPrice, quantity }} />
   );

@@ -315,6 +315,7 @@ const OrderPanel = props => {
     priceVariants,
     startTimeInterval,
     estimated_price,
+    weeklyPrice,
   } = publicData || {};
 
   const processName = resolveLatestProcessName(transactionProcessAlias.split('/')[0]);
@@ -524,6 +525,7 @@ const OrderPanel = props => {
             timeZone={timeZone}
             finePrintComponent={SubmitFinePrint}
             estimated_price={estimated_price}
+            weeklyPrice={weeklyPrice}
             {...priceVariantsMaybe}
             {...sharedProps}
           />
